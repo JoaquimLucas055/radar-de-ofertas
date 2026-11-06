@@ -79,8 +79,10 @@ async function handle(message, sender) {
   }
   if (message.type === 'apiScan' && fromMonitor) {
     const chat = state.apiChats[message.chatId];
-    if (!chat || state.paused || state.apiAccountId !== String(message.accountId)) return { found: 0 };
-    return ingest(state, 'api:' + message.chatId, chat.url, chat.title, message.messages);
+    if (!chat) return { found: 0, skipped: 'channel' };
+    if (state.paused) return { found: 0, skipped: 'paused' };
+    if (state.apiAccountId !== String(message.accountId)) return { found: 0, skipped: 'account' };
+    return ingest(state, 'api:' + message.chatId, chat.url, chat.title, message.messages, message.manualSearch === true);
   }
   if ((message.type === 'toggleChat' || message.type === 'scan') && fromWeb) {
     const url = safeTelegramUrl(message.url);
@@ -109,9 +111,12 @@ async function handle(message, sender) {
   throw new Error('Operação não disponível.');
 }
 
-async function ingest(state, chatId, url, title, messages) {
+async function ingest(state, chatId, url, title, messages, manualSearch = false) {
     if (!Array.isArray(messages)) throw new Error('Mensagens inválidas.');
     const found = [];
+    const restored = [];
+    let matched = 0;
+    const byId = new Map(state.history.map(entry => [entry.id, entry]));
     const seen = new Set(state.seen);
     for (const item of messages.slice(0, 100)) {
       if (typeof item?.text !== 'string') continue;
@@ -119,12 +124,15 @@ async function ingest(state, chatId, url, title, messages) {
       if (!text) continue;
       for (const rule of state.rules) {
         if (!matchesRule(text, rule)) continue;
+        matched++;
         const id = await eventKey(chatId, text, rule.id);
         const timestamps = messageTimes(item);
         const messageUrl = messageLink(chatId.replace(/^api:/, ''), item.messageId);
+        const entry = { id, query: rule.query, text, chat: title, url, at: Date.now(), ...timestamps,
+          ...(messageUrl ? { messageId: item.messageId, messageUrl } : {}) };
         if (seen.has(id)) {
           // A fresh search can enrich older matches without sending the alert again.
-          const previous = state.history.find(entry => entry.id === id);
+          const previous = byId.get(id);
           if (previous && !previous.messageUrl && messageUrl) {
             previous.messageId = item.messageId;
             previous.messageUrl = messageUrl;
@@ -132,15 +140,17 @@ async function ingest(state, chatId, url, title, messages) {
           if (previous && (!previous.messageId || previous.messageId === item.messageId)) {
             Object.assign(previous, timestamps);
           }
+          if (!previous && manualSearch) {
+            restored.push(entry); byId.set(id, entry);
+          }
           continue;
         }
         seen.add(id);
-        found.push({ id, query: rule.query, text, chat: title, url, at: Date.now(), ...timestamps,
-          ...(messageUrl ? { messageId: item.messageId, messageUrl } : {}) });
+        found.push(entry); byId.set(id, entry);
       }
     }
     await chrome.storage.local.set({
-      seen: [...seen].slice(-5000), history: [...found.reverse(), ...state.history].slice(0, 200),
+      seen: [...seen].slice(-5000), history: [...found.reverse(), ...restored.reverse(), ...state.history].slice(0, 200),
       lastScan: { at: Date.now(), count: messages.length, chat: title }
     });
     if (found.length) {
@@ -158,5 +168,5 @@ async function ingest(state, chatId, url, title, messages) {
         await chrome.storage.local.set({ notificationWarning: true });
       }
     }
-    return { found: found.length };
+    return { found: found.length, restored: restored.length, matched };
 }

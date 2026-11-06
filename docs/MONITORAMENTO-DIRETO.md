@@ -11,7 +11,7 @@ Não é necessário contratar servidor, executar um processo local separado ou m
 5. Se quiser guardar a sessão, marque a opção e escolha uma senha local com pelo menos 10 caracteres.
 6. Clique em conectar. Digite no formulário do Radar o código recebido pelo Telegram ou SMS. Se houver verificação de duas etapas, informe a senha no formulário seguinte. Nunca envie esses dados em chats.
 7. Cadastre o produto e marque os canais da lista.
-8. Clique em **Buscar nas últimas 100 mensagens por canal**. Essa busca funciona sem abrir as conversas.
+8. Clique em **Buscar produtos nos canais**. Essa busca funciona sem abrir as conversas.
 9. Para novas mensagens, basta manter a aba conectada. Ao criar um novo produto, clique em buscar para verificar as mensagens anteriores.
 
 A lista considera até 500 conversas da conta e mostra somente canais e grupos. É possível selecionar até 100. O filtro de nomes ajuda a encontrar os desejados. A busca anterior analisa até 100 mensagens de cada canal selecionado; não é uma busca completa de todo o histórico.
@@ -67,3 +67,13 @@ Após recarregar a extensão e reabrir a aba do Radar, desbloqueie a sessão e c
 ## Atualização 0.2.3 — horários
 
 Os resultados do modo direto mostram a data original de publicação e, quando informada pelo Telegram, a data da última edição, no fuso de Brasília. Resultados sem data original são identificados como Encontrado em. Execute uma nova busca para atualizar as datas das correspondências antigas ainda presentes na janela de 100 mensagens; essa atualização não repete notificações. A hora da última leitura continua representando a leitura do Radar.
+
+## Atualização 0.2.4 — busca manual após limpar o histórico
+
+A busca manual recupera correspondências apagadas, preservando a deduplicação de notificações. Eventos automáticos não recriam resultados apagados.
+
+Por padrão, a opção de pesquisar pelo nome dos produtos consulta o histórico do Telegram (até 100 resultados por produto e canal, inclusive postagens antigas). Desmarque para ler apenas as últimas 100 mensagens por canal. O Telegram determina quais mensagens retorna na busca; as regras e exclusões do Radar continuam sendo aplicadas localmente.
+
+O relatório mostra o número de mensagens retornadas, mensagens com texto e correspondências de cada consulta. A mesma mensagem pode aparecer nas consultas de mais de um produto; a contagem agregada representa retornos das consultas, não mensagens únicas. Pausa ou divergência de conta/canal é indicada no relatório. O filtro visual dos resultados é limpo ao iniciar uma busca manual.
+
+O teste de regressão reproduz limpar o histórico, buscar novamente e recuperar os produtos XG27ACS e 5060 sem alertas repetidos. Um teste integrado percorre três canais, com mensagens recentes sem produtos e mensagens antigas com os produtos, atravessando o leitor, a conversão de datas, as regras, a deduplicação e o histórico. Esses testes usam respostas simuladas do cliente Telegram; a validação na conta real deve ser feita após atualizar a extensão.

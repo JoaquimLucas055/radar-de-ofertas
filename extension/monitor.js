@@ -209,8 +209,8 @@ function renderChannels() {
     label.append(checkbox, node('span', chat.title)); target.append(label);
   }
 }
-async function ingest(id, messages) {
-  return request({ type: 'apiScan', accountId, chatId: id, messages });
+async function ingest(id, messages, manualSearch = false) {
+  return request({ type: 'apiScan', accountId, chatId: id, messages, manualSearch });
 }
 $('#reload-channels').addEventListener('click', () => run(loadDialogs, $('#reload-channels')));
 $('#channel-search').addEventListener('input', renderChannels);
@@ -225,10 +225,27 @@ $('#scan').addEventListener('click', () => run(async () => {
   scanning = true;
   const epoch = generation;
   try {
-    await scanRecent(client, channels, async (id, batch) => { if (selected.has(id)) await ingest(id, batch); }, {
+    $('#history-search').value = '';
+    $('#scan-report').replaceChildren();
+    const report = await scanRecent(client, channels, async (id, batch) => {
+      if (!selected.has(id)) return { skipped: 'channel' };
+      return ingest(id, batch, true);
+    }, {
+      queries: $('#search-history').checked ? state.rules.filter(rule => rule.enabled).map(rule => rule.query) : [],
       onProgress: info, stopped: () => generation !== epoch || !client
     });
-    if (generation === epoch) info('Busca concluída em ' + channels.length + ' canal(is). Confira as correspondências.');
+    if (generation === epoch) {
+      const target = $('#scan-report');
+      for (const row of report.rows) {
+        const reason = { channel: 'canal removido da seleção', paused: 'Radar pausado', account: 'conta diferente: reconecte a sessão' }[row.skipped];
+        target.append(node('p', row.chat + (row.query ? ' · ' + row.query : '') + ': ' +
+          row.messages + ' mensagem(ns) retornada(s), ' + row.textMessages + ' com texto, ' + row.matched +
+          ' correspondência(s)' + (reason ? ' · Ignorado: ' + reason : ''), 'meta'));
+      }
+      info((report.cancelled ? 'Busca interrompida. ' : 'Busca concluída. ') + report.messages + ' mensagem(ns) retornada(s) pelas consultas · ' +
+        report.matched + ' correspondência(s) · ' + report.found + ' nova(s) · ' + report.restored + ' recuperada(s) do histórico apagado.' +
+        (!report.matched ? ' Nenhum texto retornado corresponde aos produtos ativos; confira o relatório por canal.' : ''));
+    }
     await refreshState();
   } finally { scanning = false; }
 }, $('#scan')));
@@ -252,7 +269,7 @@ function renderResults() {
   const target = $('#results'); target.replaceChildren();
   const filter = $('#history-search').value.toLocaleLowerCase('pt-BR');
   const matches = state.history.filter(item => (item.query + ' ' + item.chat + ' ' + item.text).toLocaleLowerCase('pt-BR').includes(filter));
-  if (!matches.length) target.append(node('p', 'Nenhuma correspondência ainda. Cadastre um produto, marque canais e clique em buscar.', 'empty'));
+  if (!matches.length) target.append(node('p', filter ? 'Nenhum resultado para este filtro.' : 'Nenhuma correspondência exibida. Clique em buscar; o relatório abaixo da lista de canais mostra quantas mensagens foram retornadas e comparadas.', 'empty'));
   for (const item of matches) {
     const card = node('article', null, 'offer');
     card.append(node('span', item.query, 'pill'), node('p', item.chat + ' · ' + historyTime(item), 'meta'), node('p', item.text, 'message'));

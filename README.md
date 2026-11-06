@@ -1,8 +1,8 @@
-# Radar de Ofertas — 0.2.0
+# Radar de Ofertas — 0.2.4
 
 Agora há um modo de conexão direta: procure produtos nos canais escolhidos sem abrir cada conversa, mantendo apenas a aba do Radar aberta. Sem servidor de hospedagem.
 
-**Comece pelo [guia do monitoramento direto](docs/MONITORAMENTO-DIRETO.md).** Recarregue a extensão para a versão 0.2.0 e clique em **Abrir monitoramento direto** no painel. O primeiro login requer suas credenciais API ID/API Hash e a confirmação da sua conta no formulário local.
+**Comece pelo [guia do monitoramento direto](docs/MONITORAMENTO-DIRETO.md).** Recarregue a extensão para a versão 0.2.4 e clique em **Abrir monitoramento direto** no painel. O primeiro login requer suas credenciais API ID/API Hash e a confirmação da sua conta no formulário local.
 
 O código foi verificado com testes automatizados e inicialização do bundle. A autenticação e o recebimento real de mensagens precisam ser validados com sua conta; não foram executados automaticamente.
 

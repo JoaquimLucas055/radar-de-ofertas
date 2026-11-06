@@ -151,3 +151,83 @@ test('busca atualiza links antigos sem repetir alertas e salva a postagem dos ev
   assert.equal(state.history[0].messageUrl, undefined);
   assert.equal(state.history[0].url, 'https://web.telegram.org/a/#-1001234');
 });
+
+test('regressão: limpar histórico e buscar novamente recupera produtos sem repetir notificações', async () => {
+  state = {}; failNotifications = false;
+  const monitor = { ...dashboard, url: 'chrome-extension://radar-test/monitor.html' };
+  await send({ type: 'apiAccount', id: '55' }, monitor);
+  await send({ type: 'saveRule', rule: { query: 'XG27ACS' } }, monitor);
+  await send({ type: 'saveRule', rule: { query: '5060' } }, monitor);
+  const chats = [{ id: '-1001234', title: 'Canal A' }, { id: '-1005678', title: 'Canal B' }, { id: '-1009999', title: 'Canal C' }];
+  await send({ type: 'apiSelectChats', chats }, monitor);
+  const messages = [
+    { text: 'Monitor ASUS ROG XG27ACS em promoção', messageId: 42, postedAt: 1793907000000 },
+    { text: 'Placa RTX 5060 8GB', messageId: 43, postedAt: 1793908000000 }
+  ];
+  const scan = (manualSearch = false) => send({ type: 'apiScan', accountId: '55', chatId: chats[0].id, messages, manualSearch }, monitor);
+  await scan();
+  assert.equal(state.history.length, 2);
+  const notified = notifications.length;
+  await send({ type: 'clearHistory' });
+  await scan();
+  assert.equal(state.history.length, 0, 'eventos automáticos não recriam o histórico apagado');
+  const result = await scan(true);
+  assert.equal(state.history.length, 2, 'a busca manual deve recuperar as duas ofertas');
+  assert.equal(result.data.restored, 2);
+  assert.equal(result.data.matched, 2);
+  assert.equal(result.data.found, 0);
+  assert.equal(notifications.length, notified, 'restaurar não repete alertas');
+  assert.equal(state.history.find(item => item.messageId === 42).postedAt, messages[0].postedAt);
+  await scan(true);
+  assert.equal(state.history.length, 2, 'não duplica resultados na busca seguinte');
+  assert.equal(notifications.length, notified);
+});
+
+test('fluxo completo: busca por produto acha postagens fora das 100 recentes e recupera após limpar', async () => {
+  const { scanRecent } = await import('../extension/lib/monitor-engine.js');
+  state = {}; failNotifications = false;
+  const monitor = { ...dashboard, url: 'chrome-extension://radar-test/monitor.html' };
+  await send({ type: 'apiAccount', id: '55' }, monitor);
+  for (const query of ['XG27ACS', '5060']) await send({ type: 'saveRule', rule: { query } }, monitor);
+  const chats = [
+    { id: '-1001234', title: 'Canal A', entity: 'a' },
+    { id: '-1005678', title: 'Canal B', entity: 'b' },
+    { id: '-1009999', title: 'Canal C', entity: 'c' }
+  ];
+  await send({ type: 'apiSelectChats', chats }, monitor);
+  const posts = {
+    a: [{ id: 42, message: 'Monitor ASUS ROG XG27ACS em promoção', date: 1793907000 },
+        { id: 43, message: 'RTX 5060 8GB GDDR7', date: 1793908000 }],
+    b: [{ id: 44, message: 'Placa de vídeo 5060 por R$ 2597', date: 1793909000 }],
+    c: []
+  };
+  const requests = [];
+  const client = { async getMessages(entity, options) {
+    requests.push({ entity, ...options });
+    return options.search ? posts[entity].filter(post => post.message.includes(options.search)) :
+      [{ id: 200, message: 'Cupom de frete grátis', date: 1793919000 }];
+  } };
+  const ingest = async (chatId, messages) => {
+    const result = await send({ type: 'apiScan', accountId: '55', chatId, messages, manualSearch: true }, monitor);
+    assert.equal(result.ok, true); return result.data;
+  };
+  const recent = await scanRecent(client, chats, ingest);
+  assert.equal(recent.matched, 0);
+  assert.equal(recent.messages, 3);
+  const first = await scanRecent(client, chats, ingest, { queries: ['XG27ACS', '5060'] });
+  assert.equal(first.rows.length, 6);
+  assert.equal(first.matched, 3);
+  assert.equal(first.found, 3);
+  assert.equal(state.history.length, 3);
+  const offer = state.history.find(item => item.messageId === 42);
+  assert.equal(offer.postedAt, 1793907000000);
+  assert.match(decodeURIComponent(offer.messageUrl), /channel=1234&post=42$/);
+  const notified = notifications.length;
+  await send({ type: 'clearHistory' });
+  const again = await scanRecent(client, chats, ingest, { queries: ['XG27ACS', '5060'] });
+  assert.equal(again.restored, 3);
+  assert.equal(again.found, 0);
+  assert.equal(state.history.length, 3);
+  assert.equal(notifications.length, notified);
+  assert.ok(requests.filter(request => request.search).every(request => request.limit === 100));
+});
