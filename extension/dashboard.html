@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de Ofertas</title><link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="dashboard.html"><span class="logo">◉</span> RADAR <span>DE OFERTAS</span></a><span class="tag">TELEGRAM WEB · VERSÃO INICIAL</span></header>
+<main>
+<section class="hero"><div><p class="eyebrow">SUA LISTA. SEUS ACHADOS.</p><h1>O que você está<br>procurando hoje?</h1><p>Cadastre um produto e encontre correspondências nas mensagens<br class="wide"> das conversas que você escolher no Telegram Web.</p></div><div class="radar-art" aria-hidden="true"><span>◎</span><b>+</b></div></section>
+<div class="status"><span id="status-text">Carregando seu Radar…</span><button id="pause" class="small secondary" type="button">Pausar</button></div>
+<p id="feedback" role="status" aria-live="polite"></p>
+<div class="columns">
+<div>
+<section class="panel"><div class="section-title"><h2>Adicionar à sua lista</h2><span>01</span></div>
+<form id="rule-form">
+<label for="query">Produto ou palavras-chave</label><input id="query" name="query" placeholder="Ex.: Nintendo Switch" maxlength="120" required autocomplete="off">
+<p class="hint">Todas as palavras precisam aparecer na mesma mensagem.</p>
+<label for="exclude">Ignorar mensagens com <span>(opcional)</span></label><input id="exclude" name="exclude" placeholder="Ex.: capa, película, usado" maxlength="240">
+<p class="hint">Separe os termos ou expressões por vírgula.</p>
+<button class="primary" type="submit">+ Criar alerta</button>
+</form></section>
+<section class="panel"><div class="section-title"><h2>Produtos no Radar</h2><span id="rule-count">0</span></div><div id="rules"></div></section>
+<section class="panel"><div class="section-title"><h2>Conversas monitoradas</h2><span id="chat-count">0</span></div><div id="chats"></div>
+<a class="text-link" href="https://web.telegram.org/k/" target="_blank" rel="noopener noreferrer">Abrir Telegram Web ↗</a></section>
+</div>
+<section class="panel history"><div class="section-title"><h2>Correspondências</h2><button class="small secondary" id="clear" type="button">Limpar histórico</button></div>
+<label for="search" class="sr-only">Buscar no histórico</label><input id="search" type="search" placeholder="Buscar produto ou mensagem…"><div id="history"></div></section>
+</div>
+<aside class="notice"><strong>Como funciona</strong><p>1. Cadastre o produto. 2. Abra um canal ou conversa no Telegram Web. 3. Clique em “Radar · Monitorar esta conversa”. Mantenha a conversa aberta para receber novas correspondências.</p><p>O Radar lê somente mensagens de texto carregadas. Não acessa todos os canais automaticamente, não compara preços e não confirma se uma oferta está válida. Imagens não são analisadas. Na primeira leitura, mensagens antigas também podem gerar alertas.</p></aside>
+<footer>Seus dados ficam neste navegador. Sem conta extra, servidor ou envio de mensagens. <span id="last-scan"></span></footer>
+</main><script type="module" src="dashboard.js"></script>
+</body></html>

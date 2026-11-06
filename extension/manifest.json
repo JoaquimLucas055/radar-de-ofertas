@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Radar de Ofertas",
+  "version": "0.1.0",
+  "description": "Alertas locais de produtos nas mensagens carregadas das conversas escolhidas no Telegram Web.",
+  "minimum_chrome_version": "109",
+  "permissions": [
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://web.telegram.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Abrir Radar de Ofertas",
+    "default_icon": "icons/icon128.png"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "options_page": "dashboard.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://web.telegram.org/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
