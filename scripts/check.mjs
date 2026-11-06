@@ -21,8 +21,11 @@ function walk(directory) {
   }
 }
 walk(fileURLToPath(new URL('extension/', root)));
-const html = fs.readFileSync(new URL('extension/dashboard.html', root), 'utf8');
+for (const page of ['dashboard.html', 'monitor.html']) {
+const html = fs.readFileSync(new URL('extension/' + page, root), 'utf8');
 for (const match of html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)) {
   if (!fs.existsSync(new URL('extension/' + match[1], root))) throw new Error('Recurso ausente: ' + match[1]);
 }
+}
+if (!fs.existsSync(new URL('extension/vendor/telegram.js', root))) throw new Error('Execute npm run build.');
 console.log('Manifest, recursos locais e sintaxe JavaScript verificados.');

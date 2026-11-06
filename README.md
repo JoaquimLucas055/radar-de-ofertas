@@ -1,4 +1,12 @@
-# Radar de Ofertas
+# Radar de Ofertas — 0.2.0
+
+Agora há um modo de conexão direta: procure produtos nos canais escolhidos sem abrir cada conversa, mantendo apenas a aba do Radar aberta. Sem servidor de hospedagem.
+
+**Comece pelo [guia do monitoramento direto](docs/MONITORAMENTO-DIRETO.md).** Recarregue a extensão para a versão 0.2.0 e clique em **Abrir monitoramento direto** no painel. O primeiro login requer suas credenciais API ID/API Hash e a confirmação da sua conta no formulário local.
+
+O código foi verificado com testes automatizados e inicialização do bundle. A autenticação e o recebimento real de mensagens precisam ser validados com sua conta; não foram executados automaticamente.
+
+## Modo anterior: conversa aberta no Telegram Web
 
 Extensão Manifest V3 para Chrome e Edge. Cadastre produtos e receba notificações quando as palavras aparecerem nas mensagens de texto carregadas das conversas que você escolher no Telegram Web.
 
@@ -38,16 +46,11 @@ Uma correspondência significa apenas que o texto contém as palavras cadastrada
 
 Os títulos e as mensagens dependem do HTML do Telegram Web. Mudanças no Telegram podem exigir ajustes em `extension/content.js`. Conversas cadastradas no Web K e A são identificadas separadamente. O histórico pode armazenar mensagens da conta anterior se você trocar de conta no Telegram; remova conversas e dados da extensão antes de trocar de conta em um navegador compartilhado.
 
-## Monitoramento contínuo: próxima etapa
+## Monitoramento sem abrir conversas
 
-Para acompanhar os canais com o navegador fechado, será necessário um processo separado sempre ligado. Um bot comum recebe mensagens de canais dos quais ele participa; isso não equivale a acessar todos os canais seguidos pela conta do usuário. Para canais de terceiros, uma integração cliente autorizada via Telegram API/TDLib seria uma etapa distinta, com login, armazenamento de sessão, proteção de credenciais e operação do serviço. Essa etapa **não está implementada**.
+O modo direto está implementado na versão 0.2.0 e funciona em uma aba própria. Consulte o [guia de conexão](docs/MONITORAMENTO-DIRETO.md). Ele não requer servidor, mas exige login próprio, API ID/API Hash e a aba do Radar aberta.
 
-Referências oficiais:
-- [Content scripts do Chrome](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-- [FAQ de bots do Telegram](https://core.telegram.org/bots/faq)
-- [TDLib](https://core.telegram.org/tdlib)
-
-## Privacidade
+## Privacidade do modo anterior
 
 Tudo fica em `chrome.storage.local` neste perfil do navegador: regras, conversas escolhidas, correspondências e hashes de deduplicação. O acesso a esse armazenamento é limitado aos contextos confiáveis da extensão. O código não faz requisições de rede nem usa analytics. A única permissão de site é `https://web.telegram.org/*`. Notificações podem exibir o produto e o nome da conversa na tela; o corpo da mensagem permanece no histórico.
 
@@ -55,7 +58,7 @@ A extensão inspeciona o texto das conversas escolhidas. Use apenas em um perfil
 
 ## Desenvolvimento
 
-Requer Node.js 20 ou superior. Sem dependências externas.
+Requer Node.js 20 ou superior. Para compilar o cliente integrado, execute npm ci e npm run build.
 
 ```sh
 npm test

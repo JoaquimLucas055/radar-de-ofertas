@@ -1,1 +1,22 @@
-{"name":"radar-ofertas","version":"0.1.0","private":true,"type":"module","scripts":{"test":"node --test","check":"node scripts/check.mjs"},"engines":{"node":">=20"}}
+{
+  "name": "radar-ofertas",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node scripts/check.mjs",
+    "build": "node scripts/build.mjs",
+    "smoke": "node --experimental-vm-modules scripts/bundle-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "esbuild-plugins-node-modules-polyfill": "1.8.3"
+  },
+  "dependencies": {
+    "teleproto": "1.232.1"
+  }
+}

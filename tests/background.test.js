@@ -17,7 +17,7 @@ globalThis.chrome = {
     async setAccessLevel() {}
   } },
   action: { onClicked: { addListener() {} }, async setBadgeText() {}, async setBadgeBackgroundColor() {} },
-  tabs: { async create() {} },
+  tabs: { async create() {}, async get(id) { return { url: id === 99 ? 'https://example.com/' : 'https://web.telegram.org/k/#' + id }; } },
   notifications: {
     onClicked: { addListener() {} },
     async create(id, data) {
@@ -28,7 +28,7 @@ globalThis.chrome = {
 };
 await import('../extension/background.js');
 const dashboard = { id: 'radar-test', url: 'chrome-extension://radar-test/dashboard.html' };
-const web = id => ({ id: 'radar-test', url: 'https://web.telegram.org/k/#' + id, tab: { id: 1 } });
+const web = id => ({ id: 'radar-test', url: 'https://web.telegram.org/k/#' + id, tab: { id } });
 function send(message, sender = dashboard) {
   return new Promise(resolve => {
     const asyncReply = listener(message, sender, resolve);
@@ -79,4 +79,46 @@ test('worker: permissões, fluxo de alerta, deduplicação e concorrência', asy
   await send({ type: 'toggleRule', id: saved.data.id });
   await chat('scan', 2, 'fone bluetooth R$ 120');
   assert.equal(state.history.length, 0);
+  // Regression: sender retains the original document URL after SPA navigation.
+  const navigated = { ...web(3), url: 'https://web.telegram.org/k/#1' };
+  const added = await send({ type: 'toggleChat', url: 'https://web.telegram.org/k/#3', title: 'Outro canal' }, navigated);
+  assert.equal(added.ok, true);
+  assert.equal(state.chats['/k/#3'].title, 'Outro canal');
+  const stale = await send({ type: 'scan', url: 'https://web.telegram.org/k/#1', messages: [] }, navigated);
+  assert.equal(stale.ok, false, 'rejects batches from the previous conversation');
+  const leftTelegram = await send({ type: 'toggleChat', url: 'https://web.telegram.org/k/#99' }, web(99));
+  assert.equal(leftTelegram.ok, false);
+});
+
+test('modo direto: seleção explícita, conta correta, pausa e isolamento', async () => {
+  state = {}; failNotifications = false;
+  const monitor = { ...dashboard, url: 'chrome-extension://radar-test/monitor.html' };
+  assert.equal((await send({ type: 'apiAccount', id: '55' }, web(1))).ok, false);
+  await send({ type: 'apiAccount', id: '55' }, monitor);
+  await send({ type: 'saveRule', rule: { query: 'monitor asus' } }, monitor);
+  const scan = (chatId, accountId = '55', text = 'Monitor Asus por R$ 999') =>
+    send({ type: 'apiScan', accountId, chatId, messages: [{ text }] }, monitor);
+  await scan('-1001');
+  assert.equal(state.history.length, 0, 'ignora canais não escolhidos');
+  const invalid = await send({ type: 'apiSelectChats', chats: [{ id: 'evil' }] }, monitor);
+  assert.equal(invalid.ok, false);
+  await send({ type: 'apiSelectChats', chats: [{ id: '-1001', title: 'Canal A' }, { id: '-1002', title: 'Canal B' }] }, monitor);
+  await scan('-1001', 'outra');
+  assert.equal(state.history.length, 0, 'ignora conta diferente');
+  await Promise.all([scan('-1001'), scan('-1002')]);
+  assert.equal(state.history.length, 2);
+  assert.deepEqual(new Set(state.history.map(item => item.chat)), new Set(['Canal A', 'Canal B']));
+  await scan('-1001');
+  assert.equal(state.history.length, 2, 'deduplica busca e evento');
+  await send({ type: 'pause' });
+  await scan('-1001', '55', 'Monitor Asus R$ 800');
+  assert.equal(state.history.length, 2);
+  await send({ type: 'pause' });
+  await send({ type: 'apiSelectChats', chats: [{ id: '-1002', title: 'Canal B' }] }, monitor);
+  await scan('-1001', '55', 'Monitor Asus R$ 700');
+  assert.equal(state.history.length, 2, 'remover seleção interrompe recebimento');
+  await send({ type: 'apiAccount', id: '66' }, monitor);
+  assert.deepEqual(state.apiChats, {});
+  assert.equal(state.history.length, 0, 'outra conta não vê histórico anterior');
+  assert.equal(state.rules.length, 1, 'preserva produtos');
 });

@@ -18,10 +18,11 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
 async function handle(message, sender) {
   const fromWeb = Boolean(sender.tab && safeTelegramUrl(sender.url));
-  const fromDashboard = sender.url === chrome.runtime.getURL('dashboard.html');
+  const fromMonitor = sender.url === chrome.runtime.getURL('monitor.html');
+  const fromDashboard = sender.url === chrome.runtime.getURL('dashboard.html') || fromMonitor;
   if (!fromWeb && !fromDashboard) throw new Error('Origem não autorizada.');
   const state = await chrome.storage.local.get({
-    rules: [], chats: {}, history: [], seen: [], paused: false, lastScan: null, notificationWarning: false
+    rules: [], chats: {}, history: [], seen: [], paused: false, lastScan: null, notificationWarning: false, apiChats: {}, apiAccountId: null
   });
   if (message.type === 'status' && fromWeb) return { chats: state.chats, paused: state.paused };
   if (message.type === 'state' && fromDashboard) {
@@ -56,15 +57,43 @@ async function handle(message, sender) {
     await chrome.storage.local.set({ chats: state.chats });
     return;
   }
+  if (message.type === 'apiAccount' && fromMonitor) {
+    if (!/^[0-9]+$/.test(String(message.id))) throw new Error('Conta inválida.');
+    if (state.apiAccountId !== String(message.id)) {
+      await chrome.storage.local.set({ apiAccountId: String(message.id), apiChats: {},
+        history: state.apiAccountId ? [] : state.history, seen: state.apiAccountId ? [] : state.seen });
+    }
+    return;
+  }
+  if (message.type === 'apiSelectChats' && fromMonitor) {
+    if (!Array.isArray(message.chats) || message.chats.length > 100) throw new Error('Escolha até 100 canais.');
+    const chats = {};
+    for (const chat of message.chats) {
+      if (!/^-[0-9]+$/.test(String(chat.id))) throw new Error('Canal inválido.');
+      chats[chat.id] = { title: String(chat.title).slice(0, 160), url: 'https://web.telegram.org/a/#' + chat.id };
+    }
+    await chrome.storage.local.set({ apiChats: chats });
+    return;
+  }
+  if (message.type === 'apiScan' && fromMonitor) {
+    const chat = state.apiChats[message.chatId];
+    if (!chat || state.paused || state.apiAccountId !== String(message.accountId)) return { found: 0 };
+    return ingest(state, 'api:' + message.chatId, chat.url, chat.title, message.messages);
+  }
   if ((message.type === 'toggleChat' || message.type === 'scan') && fromWeb) {
     const url = safeTelegramUrl(message.url);
-    const source = new URL(sender.url);
+    // Read the live tab URL: Telegram changes conversations without reloading the document.
+    const tab = await chrome.tabs.get(sender.tab.id);
+    const currentUrl = safeTelegramUrl(tab.url);
+    if (!currentUrl) throw new Error('A aba não está mais no Telegram Web.');
+    const source = new URL(currentUrl);
     if (!url || new URL(url).pathname !== source.pathname || new URL(url).hash !== source.hash || !source.hash.slice(1)) {
       throw new Error('Abra uma conversa antes de monitorar.');
     }
     const chatId = source.pathname + source.hash;
     if (message.type === 'toggleChat') {
-      if (state.chats[chatId]) delete state.chats[chatId];
+      const enable = typeof message.monitoring === 'boolean' ? message.monitoring : !state.chats[chatId];
+      if (!enable) delete state.chats[chatId];
       else {
         if (Object.keys(state.chats).length >= 100) throw new Error('Limite de 100 conversas.');
         state.chats[chatId] = { title: String(message.title || 'Conversa').slice(0, 160), url };
@@ -73,10 +102,16 @@ async function handle(message, sender) {
       return { monitoring: Boolean(state.chats[chatId]) };
     }
     if (state.paused || !state.chats[chatId]) return;
-    if (!Array.isArray(message.messages)) throw new Error('Mensagens inválidas.');
+    return ingest(state, chatId, url, state.chats[chatId].title, message.messages);
+  }
+  throw new Error('Operação não disponível.');
+}
+
+async function ingest(state, chatId, url, title, messages) {
+    if (!Array.isArray(messages)) throw new Error('Mensagens inválidas.');
     const found = [];
     const seen = new Set(state.seen);
-    for (const item of message.messages.slice(0, 100)) {
+    for (const item of messages.slice(0, 100)) {
       if (typeof item?.text !== 'string') continue;
       const text = item.text.slice(0, 6000).trim();
       if (!text) continue;
@@ -85,12 +120,12 @@ async function handle(message, sender) {
         const id = await eventKey(chatId, text, rule.id);
         if (seen.has(id)) continue;
         seen.add(id);
-        found.push({ id, query: rule.query, text, chat: state.chats[chatId].title, url, at: Date.now() });
+        found.push({ id, query: rule.query, text, chat: title, url, at: Date.now() });
       }
     }
     await chrome.storage.local.set({
       seen: [...seen].slice(-5000), history: [...found.reverse(), ...state.history].slice(0, 200),
-      lastScan: { at: Date.now(), count: message.messages.length, chat: state.chats[chatId].title }
+      lastScan: { at: Date.now(), count: messages.length, chat: title }
     });
     if (found.length) {
       await chrome.action.setBadgeText({ text: '!' });
@@ -108,6 +143,4 @@ async function handle(message, sender) {
       }
     }
     return { found: found.length };
-  }
-  throw new Error('Operação não disponível.');
 }

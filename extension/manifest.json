@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Radar de Ofertas",
-  "version": "0.1.0",
-  "description": "Alertas locais de produtos nas mensagens carregadas das conversas escolhidas no Telegram Web.",
+  "version": "0.2.0",
+  "description": "Monitore produtos nos canais escolhidos com conexão direta ao Telegram em uma aba do Radar.",
   "minimum_chrome_version": "109",
   "permissions": [
     "storage",
