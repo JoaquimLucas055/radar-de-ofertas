@@ -1,3 +1,4 @@
+import { messageTimes } from './lib/message-time.js';
 import { messageLink } from './lib/message-links.js';
 import { matchesRule, validateRule, safeTelegramUrl, eventKey } from './lib/matcher.js';
 
@@ -119,6 +120,7 @@ async function ingest(state, chatId, url, title, messages) {
       for (const rule of state.rules) {
         if (!matchesRule(text, rule)) continue;
         const id = await eventKey(chatId, text, rule.id);
+        const timestamps = messageTimes(item);
         const messageUrl = messageLink(chatId.replace(/^api:/, ''), item.messageId);
         if (seen.has(id)) {
           // A fresh search can enrich older matches without sending the alert again.
@@ -127,10 +129,13 @@ async function ingest(state, chatId, url, title, messages) {
             previous.messageId = item.messageId;
             previous.messageUrl = messageUrl;
           }
+          if (previous && (!previous.messageId || previous.messageId === item.messageId)) {
+            Object.assign(previous, timestamps);
+          }
           continue;
         }
         seen.add(id);
-        found.push({ id, query: rule.query, text, chat: title, url, at: Date.now(),
+        found.push({ id, query: rule.query, text, chat: title, url, at: Date.now(), ...timestamps,
           ...(messageUrl ? { messageId: item.messageId, messageUrl } : {}) });
       }
     }

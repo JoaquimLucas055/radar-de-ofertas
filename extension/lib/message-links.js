@@ -1,3 +1,4 @@
+import { fromTelegramTime } from './message-time.js';
 // Telegram Web A accepts the official privatepost deep link through tgaddr.
 // The -100 prefix identifies a channel/supergroup; basic groups have no equivalent permalink.
 export function messageLink(chatId, messageId) {
@@ -7,5 +8,8 @@ export function messageLink(chatId, messageId) {
   return 'https://web.telegram.org/a/#?tgaddr=' + encodeURIComponent(deepLink);
 }
 export function messagePayload(message) {
-  return { text: message.message || '', messageId: message.id };
+  const postedAt = fromTelegramTime(message.date);
+  const editedAt = fromTelegramTime(message.editDate);
+  return { text: message.message || '', messageId: message.id,
+    ...(postedAt ? { postedAt } : {}), ...(editedAt ? { editedAt } : {}) };
 }

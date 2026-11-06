@@ -63,3 +63,7 @@ Os testes cobrem criptografia, validação de origem/conta/canal, deduplicação
 ## Atualização 0.2.2
 
 Após recarregar a extensão e reabrir a aba do Radar, desbloqueie a sessão e clique em buscar novamente. As correspondências antigas encontradas nessa janela ganham o botão Abrir mensagem. A atualização não altera a sessão criptografada.
+
+## Atualização 0.2.3 — horários
+
+Os resultados do modo direto mostram a data original de publicação e, quando informada pelo Telegram, a data da última edição, no fuso de Brasília. Resultados sem data original são identificados como Encontrado em. Execute uma nova busca para atualizar as datas das correspondências antigas ainda presentes na janela de 100 mensagens; essa atualização não repete notificações. A hora da última leitura continua representando a leitura do Radar.

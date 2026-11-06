@@ -1,3 +1,4 @@
+import { historyTime } from './lib/message-time.js';
 const $ = selector => document.querySelector(selector);
 let current;
 async function request(message) {
@@ -36,7 +37,7 @@ function renderHistory() {
   for (const item of history) {
     const card = element('article', undefined, 'offer');
     card.append(element('span', item.query, 'pill'));
-    card.append(element('p', item.chat + ' · ' + new Date(item.at).toLocaleString('pt-BR'), 'meta'));
+    card.append(element('p', item.chat + ' · ' + historyTime(item), 'meta'));
     card.append(element('p', item.text, 'message'), chatLink(item.messageUrl || item.url, Boolean(item.messageUrl)));
     target.append(card);
   }

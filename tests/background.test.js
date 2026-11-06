@@ -133,7 +133,13 @@ test('busca atualiza links antigos sem repetir alertas e salva a postagem dos ev
   await scan({ text: 'Monitor Asus R$ 900' });
   assert.equal(state.history[0].messageUrl, undefined);
   const notified = notifications.length;
-  await scan({ text: 'Monitor Asus R$ 900', messageId: 42 });
+  const discoveredAt = state.history[0].at;
+  const postedAt = Date.parse('2026-11-05T19:30:00Z');
+  const editedAt = Date.parse('2026-11-05T19:46:00Z');
+  await scan({ text: 'Monitor Asus R$ 900', messageId: 42, postedAt, editedAt });
+  assert.equal(state.history[0].postedAt, postedAt);
+  assert.equal(state.history[0].editedAt, editedAt);
+  assert.equal(state.history[0].at, discoveredAt, 'preserva separadamente o horário da descoberta');
   assert.equal(state.history.length, 1);
   assert.equal(state.history[0].messageId, 42);
   assert.match(decodeURIComponent(state.history[0].messageUrl), /privatepost\?channel=1234&post=42$/);

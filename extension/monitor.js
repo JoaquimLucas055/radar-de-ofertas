@@ -1,3 +1,4 @@
+import { historyTime } from './lib/message-time.js';
 import { messagePayload } from './lib/message-links.js';
 import { codeDelivery } from './lib/login-delivery.js';
 import { seal, unseal } from './lib/vault.js';
@@ -254,7 +255,7 @@ function renderResults() {
   if (!matches.length) target.append(node('p', 'Nenhuma correspondência ainda. Cadastre um produto, marque canais e clique em buscar.', 'empty'));
   for (const item of matches) {
     const card = node('article', null, 'offer');
-    card.append(node('span', item.query, 'pill'), node('p', item.chat + ' · ' + new Date(item.at).toLocaleString('pt-BR'), 'meta'), node('p', item.text, 'message'));
+    card.append(node('span', item.query, 'pill'), node('p', item.chat + ' · ' + historyTime(item), 'meta'), node('p', item.text, 'message'));
     const url = new URL(item.messageUrl || item.url);
     if (url.origin === 'https://web.telegram.org') {
       const link = node('a', item.messageUrl ? 'Abrir mensagem ↗' : 'Abrir conversa ↗', 'text-link');
