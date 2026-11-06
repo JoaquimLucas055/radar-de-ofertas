@@ -1,3 +1,4 @@
+import { messagePayload } from './message-links.js';
 export function peerId(message) {
   const peer = message.peerId;
   if (!peer) return '';
@@ -13,6 +14,6 @@ export async function scanRecent(client, selected, ingest, { limit = 100, onProg
     onProgress('Buscando até ' + limit + ' mensagens em ' + chat.title + '…');
     const messages = await client.getMessages(chat.entity, { limit });
     if (stopped()) break;
-    await ingest(chat.id, messages.map(message => ({ text: message.message || '' })));
+    await ingest(chat.id, messages.map(messagePayload));
   }
 }

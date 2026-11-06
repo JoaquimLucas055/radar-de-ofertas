@@ -9,12 +9,13 @@ test('identifica canais, grupos e pessoas sem misturar IDs', () => {
 });
 test('busca canais escolhidos sem abrir conversas, respeita limite e cancelamento', async () => {
   const requests = [], batches = [];
-  const client = { async getMessages(entity, options) { requests.push({ entity, ...options }); return [{ message: 'Monitor Asus' }, { message: '' }]; } };
+  const client = { async getMessages(entity, options) { requests.push({ entity, ...options }); return [{ id: 42, message: 'Monitor Asus' }, { message: '' }]; } };
   await scanRecent(client, [{ id: '-1001', title: 'Canal A', entity: 'entidade-A' }, { id: '-1002', title: 'Canal B', entity: 'entidade-B' }],
     async (id, messages) => batches.push({ id, messages }));
   assert.deepEqual(requests.map(r => r.limit), [100, 100]);
   assert.deepEqual(batches.map(b => b.id), ['-1001', '-1002']);
   assert.equal(batches[0].messages[0].text, 'Monitor Asus');
+  assert.equal(batches[0].messages[0].messageId, 42);
   await scanRecent(client, [{ id: '3' }], () => assert.fail('cancelado'), { stopped: () => true });
   assert.equal(requests.length, 2);
 });

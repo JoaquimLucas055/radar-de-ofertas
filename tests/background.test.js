@@ -122,3 +122,26 @@ test('modo direto: seleção explícita, conta correta, pausa e isolamento', asy
   assert.equal(state.history.length, 0, 'outra conta não vê histórico anterior');
   assert.equal(state.rules.length, 1, 'preserva produtos');
 });
+
+test('busca atualiza links antigos sem repetir alertas e salva a postagem dos eventos novos', async () => {
+  state = {}; failNotifications = false;
+  const monitor = { ...dashboard, url: 'chrome-extension://radar-test/monitor.html' };
+  await send({ type: 'apiAccount', id: '55' }, monitor);
+  await send({ type: 'saveRule', rule: { query: 'monitor asus' } }, monitor);
+  await send({ type: 'apiSelectChats', chats: [{ id: '-1001234', title: 'Promoções' }] }, monitor);
+  const scan = message => send({ type: 'apiScan', accountId: '55', chatId: '-1001234', messages: [message] }, monitor);
+  await scan({ text: 'Monitor Asus R$ 900' });
+  assert.equal(state.history[0].messageUrl, undefined);
+  const notified = notifications.length;
+  await scan({ text: 'Monitor Asus R$ 900', messageId: 42 });
+  assert.equal(state.history.length, 1);
+  assert.equal(state.history[0].messageId, 42);
+  assert.match(decodeURIComponent(state.history[0].messageUrl), /privatepost\?channel=1234&post=42$/);
+  assert.equal(notifications.length, notified, 'enriquecer histórico não notifica novamente');
+  await scan({ text: 'Monitor Asus R$ 800', messageId: 43 });
+  assert.equal(state.history[0].messageId, 43);
+  assert.match(decodeURIComponent(state.history[0].messageUrl), /post=43$/);
+  await scan({ text: 'Monitor Asus R$ 700', messageId: 'javascript:alert(1)' });
+  assert.equal(state.history[0].messageUrl, undefined);
+  assert.equal(state.history[0].url, 'https://web.telegram.org/a/#-1001234');
+});

@@ -35,7 +35,7 @@ Ao conectar uma conta diferente, o Radar limpa as seleções e o histórico loca
 - Pausar interrompe o registro de correspondências; retomar não pesquisa automaticamente mensagens passadas.
 - Erros de limite do Telegram interrompem a busca. Aguarde o prazo solicitado antes de tentar de novo.
 - Conteúdo apenas em imagem/vídeo não é analisado. Não há validação de desconto, estoque ou segurança de links.
-- O link no histórico abre a conversa, sem garantia de posicionar na mensagem.
+- Em canais e supergrupos, o botão Abrir mensagem posiciona na postagem original pelo ID. Resultados antigos ganham o link ao serem encontrados novamente na busca, sem repetir a notificação. Grupos básicos e resultados sem ID continuam abrindo apenas a conversa. A conta conectada ao Telegram Web precisa ter acesso ao canal; mensagens removidas podem não abrir.
 - O login deve usar uma conta existente. Desafios adicionais não suportados podem exigir retomar pelo aplicativo oficial.
 - O modo anterior, que lê a conversa aberta no Telegram Web, continua no painel antigo.
 
@@ -59,3 +59,7 @@ Os testes cobrem criptografia, validação de origem/conta/canal, deduplicação
 - [Autorização de usuários](https://core.telegram.org/api/auth)
 - [Teleproto](https://docs.teleproto.dev)
 - [Compatibilidade e migração](https://docs.teleproto.dev/migrating-from-gramjs)
+
+## Atualização 0.2.2
+
+Após recarregar a extensão e reabrir a aba do Radar, desbloqueie a sessão e clique em buscar novamente. As correspondências antigas encontradas nessa janela ganham o botão Abrir mensagem. A atualização não altera a sessão criptografada.

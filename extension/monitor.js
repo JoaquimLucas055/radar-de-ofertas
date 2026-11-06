@@ -1,3 +1,5 @@
+import { messagePayload } from './lib/message-links.js';
+import { codeDelivery } from './lib/login-delivery.js';
 import { seal, unseal } from './lib/vault.js';
 import { peerId, scanRecent } from './lib/monitor-engine.js';
 const $ = selector => document.querySelector(selector);
@@ -69,6 +71,7 @@ async function acquireLock() {
 async function connect(credentials, savedSession = '', password = '') {
   if (connecting || client) throw new Error('Já há uma conexão em andamento.');
   connecting = true;
+  info('');
   const epoch = ++generation;
   try {
     await acquireLock();
@@ -81,10 +84,19 @@ async function connect(credentials, savedSession = '', password = '') {
     client.setLogLevel('none');
     await client.start({
       phoneNumber: () => Promise.resolve(credentials.phone),
-      phoneCode: () => ask('Código recebido pelo Telegram ou SMS'),
+      phoneCode: (isApp, delivery) => {
+        const guidance = codeDelivery(isApp, delivery);
+        info(guidance);
+        $('#connection').textContent = 'Aguardando você informar o código';
+        return ask(guidance);
+      },
       password: () => ask('Sua senha de duas etapas do Telegram', 'password'),
       emailAddress: () => ask('E-mail solicitado pelo Telegram', 'email'),
-      emailVerification: () => ask('Código enviado ao seu e-mail'),
+      emailVerification: delivery => {
+        info('O Telegram informou envio de código ao e-mail ' + (delivery?.emailPattern || 'da sua conta') + '.');
+        $('#connection').textContent = 'Aguardando código do e-mail';
+        return ask('Código enviado ao seu e-mail');
+      },
       firstAndLastNames: () => { throw new Error('Use uma conta já existente do Telegram.'); },
       acceptTermsOfService: async () => false,
       onError: async error => { info(friendly(error)); throw error; }
@@ -107,7 +119,7 @@ async function connect(credentials, savedSession = '', password = '') {
       if (generation !== epoch) return;
       const id = peerId(event.message);
       if (!selected.has(id)) return;
-      try { await ingest(id, [{ text: event.message.message || '' }]); }
+      try { await ingest(id, [messagePayload(event.message)]); }
       catch (error) { info(friendly(error)); }
     }, new lib.NewMessage({}));
     heartbeat = setInterval(() => {
@@ -243,9 +255,9 @@ function renderResults() {
   for (const item of matches) {
     const card = node('article', null, 'offer');
     card.append(node('span', item.query, 'pill'), node('p', item.chat + ' · ' + new Date(item.at).toLocaleString('pt-BR'), 'meta'), node('p', item.text, 'message'));
-    const url = new URL(item.url);
+    const url = new URL(item.messageUrl || item.url);
     if (url.origin === 'https://web.telegram.org') {
-      const link = node('a', 'Abrir conversa ↗', 'text-link');
+      const link = node('a', item.messageUrl ? 'Abrir mensagem ↗' : 'Abrir conversa ↗', 'text-link');
       link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; card.append(link);
     }
     target.append(card);

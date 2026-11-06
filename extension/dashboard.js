@@ -18,8 +18,8 @@ function action(label, message) {
   return button;
 }
 function empty(target, text) { target.append(element('div', text, 'empty')); }
-function chatLink(url) {
-  const link = element('a', 'Abrir conversa ↗', 'text-link');
+function chatLink(url, exactMessage = false) {
+  const link = element('a', exactMessage ? 'Abrir mensagem ↗' : 'Abrir conversa ↗', 'text-link');
   // URLs come from the trusted worker; keep defense in depth for local state.
   try {
     const parsed = new URL(url);
@@ -37,7 +37,7 @@ function renderHistory() {
     const card = element('article', undefined, 'offer');
     card.append(element('span', item.query, 'pill'));
     card.append(element('p', item.chat + ' · ' + new Date(item.at).toLocaleString('pt-BR'), 'meta'));
-    card.append(element('p', item.text, 'message'), chatLink(item.url));
+    card.append(element('p', item.text, 'message'), chatLink(item.messageUrl || item.url, Boolean(item.messageUrl)));
     target.append(card);
   }
 }
